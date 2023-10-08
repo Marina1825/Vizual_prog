@@ -1,190 +1,254 @@
 #include "mainwindow.h"
 #include <QtWidgets>
-#include <QGroupBox>
-#include <QWidget>
 #include <cmath>
-#include <cstdlib>
 
-float MainWindow::PL(float f, float d)
-{
-    return 28 + 22 * log10(f) + 20 * log10(d);
-}
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent), maxX(1000), maxY(1000), onePixDistance(10.0), txPower(10), antGain(6), freq(6.0) {
+    scene = new QGraphicsScene();
+    QPixmap map(maxX, maxY);
+    QPainter painter(&map);
 
-float calculatePenetrationLoss(float distance, int col_wall, float material_wall)
-{
-    //float PL_tw = 20; //[dB]
-    float PL_b = ;
-    float PL_in = 0.5;
-    float PL_TW = P(col_wall) * 10 * (col_wall * 10 * (material_wall / -10));
-    PL= PL_b + PLtw + PL_in + N(0, q*q)
+    drawSignalMap(painter);
 
-    // Здесь используется какая-то формула для расчета затухания,
-    // соответствующая спецификации 3GPP TR 38.901 (7.4.3.1 O2I building penetration loss)
-    // Замените этот код вашей формулой
-
-    return 0; /* ваш расчет*/
-}
-
-int countObstaclesOnRay(int x1, int y1, int x2, int y2)
-{
-    int dx = abs(x2 - x1);
-    int dy = abs(y2 - y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int error = dx - dy;
-    int obstacles = 0;
-
-    while (x1 != x2 || y1 != y2)
-    {
-        // Проверяем текущий пиксель на наличие препятствия
-        // Не забудьте определить, как проверять препятствия в данном пикселе
-
-        if (/* код проверки препятствия */)
-        {
-            obstacles++;
-        }
-
-        int error2 = 2 * error;
-
-        if (error2 > -dy)
-        {
-            error -= dy;
-            x1 += sx;
-        }
-
-        if (error2 < dx)
-        {
-            error += dx;
-            y1 += sy;
-        }
-    }
-
-    return obstacles;
-}
-
-void MainWindow::drawObstacles(QPainter& p, int maxX, int maxY)
-{
-    // Количество препятствий
-    int numObstacles = rand() % 50 + 10; // От 10 до 60 препятствий
-
-    for (int i = 0; i < numObstacles; i++)
-    {
-        int type = rand() % 4; // Случайный выбор типа препятствия
-        int material = rand() % 4; // Случайный выбор материала
-
-        QColor color;
-
-        // Выбор цвета на основе материала
-        switch (material)
-        {
-        case 0: color = Qt::gray; break; // Стеклопакет 2+0.2f
-        case 1: color = Qt::cyan; break; // IRR стекло 23+0.3f
-        case 2: color = Qt::darkGray; break; // Бетон 5+4f
-        case 3: color = Qt::green; break; // Дерево\гипсокартон 4.85+0.12f
-        }
-
-        p.setBrush(color);
-        p.setPen(color);
-
-        // Рисование препятствия на основе его типа
-        switch (type)
-        {
-        case 0:
-        {
-            // Круг
-            int x = rand() % maxX;
-            int y = rand() % maxY;
-            int r = rand() % 50 + 10;
-            p.drawEllipse(x, y, r, r);
-            break;
-        }
-        case 1:
-        {
-            // Прямоугольник
-            int x = rand() % maxX;
-            int y = rand() % maxY;
-            int w = rand() % 100 + 20;
-            int h = rand() % 100 + 20;
-            p.drawRect(x, y, w, h);
-            break;
-        }
-        case 2:
-        {
-            // Линия
-            int x1 = rand() % maxX;
-            int y1 = rand() % maxY;
-            int x2 = rand() % maxX;
-            int y2 = rand() % maxY;
-            p.drawLine(x1, y1, x2, y2);
-
-            // Вызываем функцию для подсчета препятствий на луче
-            int obstacles = countObstaclesOnRay(cellPosX, cellPosY, x2, y2);
-
-            // Используйте значение obstacles по своему усмотрению
-
-            break;
-        }
-        case 3:
-        {
-            // Эллипс
-            int x = rand() % maxX;
-            int y = rand() % maxY;
-            int w = rand() % 100 + 20;
-            int h = rand() % 50 + 10;
-            p.drawEllipse(x, y, w, h);
-            break;
-        }
-        }
-    }
-}
-
-MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent)
-    {
-    QGraphicsScene* scene = new QGraphicsScene();
-    int maxX = 1000;
-    int maxY = 1000;
-    int col_wall = 0;
-    float material_wall = 0;
-    double onePixDistance = 10; //[m]
-    int TxPower = 10;           // [dBm]
-    int antGain = 6;            // [dBi]
-    float freq = 6;//не смей меня менять, о смертный человек, иначе ты познаешь боль, мучения, ведь чтоб сменить меня на 5 тебе придется цыкл написать // [GHz]
-    int cellPosX = 576;
-    int cellPosY = 671;
-    QPixmap map(maxX, maxY); // Создаем карту для рисования
-    QPainter p(&map);
-
-    // Вызываем функцию для рисования препятствий
-    drawObstacles(p, maxX, maxY);
-
-    // Остальной код остается без изменений
-    for (int i = 0; i < maxX; i++)
-    {
-        for (int j = 0; j < maxY; j++)
-        {
-            float distance = 0;
-            distance = sqrt(pow(abs(cellPosX - i), 2) + pow(abs(cellPosY - j), 2)); // [pix]
-            distance *= onePixDistance; // [meters]
-            float sigPower = TxPower + antGain - PL(freq, distance);
-
-            // Добавляем расчет затухания при прохождении через препятствие
-            float distanceToObstacle = sqrt(pow(abs(cellPosX - i), 2) + pow(abs(cellPosY - j), 2)) * onePixDistance;
-            float penetrationLoss = calculatePenetrationLoss (distanceToObstacle, col_wall, material_wall);
-
-            // Вычитаем затухание из основного бюджета канала
-            float signalPowerAfterPenetrationLoss = sigPower - penetrationLoss;
-
-            // Остальной код рисования уровня сигнала остается без изменений
-            // ...
-        }
-    }
-    p.end();
+    painter.end();
     scene->addPixmap(map);
-    QGraphicsView* view = new QGraphicsView(scene);
+    QGraphicsView *view = new QGraphicsView(scene);
     setCentralWidget(view);
 }
 
-MainWindow::~MainWindow()
-{
-}S
+/*void MainWindow::drawSignalMap(QPainter &painter) {
+    float glassAttenuation = 2.0 + 0.2 * freq;
+    float irrGlassAttenuation = 23.0 + 0.3 * freq;
+    float concreteAttenuation = 5.0 + 4.0 * freq;
+    float woodGypsumAttenuation = 4.85 + 0.12 * freq;
+
+    for (int i = 0; i < maxX; i++) {
+        for (int j = 0; j < maxY; j++) {
+
+            float distance = sqrt(pow(abs(378 - i), 2) + pow(abs(401 - j), 2)) * onePixDistance;
+            float sigPower = txPower + antGain - pathLoss(distance);
+
+            QColor pixelColor;
+
+            // Рассмотрим разные типы стен и их коэффициенты заглушения
+            float wallAttenuation = 0.0;  // Значение по умолчанию (отсутствие стены)
+
+            // Пример: Стеклопакет
+            if (isGlassWall(i, j)) {
+                wallAttenuation = glassAttenuation;
+            }
+
+            // Пример: IRR стекло
+            else if (isIrrGlassWall(i, j)) {
+                wallAttenuation = irrGlassAttenuation;
+            }
+
+            // Пример: Бетон
+            else if (isConcreteWall(i, j)) {
+                wallAttenuation = concreteAttenuation;
+            }
+
+            // Пример: Дерево\гипсокартон
+            else if (isWoodOrGypsumWall(i, j)) {
+                wallAttenuation = woodGypsumAttenuation;
+            }
+
+            // Вычисление сигнальной мощности с учетом коэффициента заглушения стены
+            sigPower -= wallAttenuation;
+
+            // Устанавливаем цвет пикселя в зависимости от сигнальной мощности
+            if (sigPower >= -40) {
+                pixelColor = QColor(255, 0, 0, 255);
+            } else if (sigPower >= -45) {
+                pixelColor = QColor(255, 100, 0, 255);
+            } else if (sigPower >= -50) {
+                pixelColor = QColor(255, 100, 0, 255);
+            } else if (sigPower >= -55) {
+                pixelColor = QColor(255, 150, 0, 255);
+            } else if (sigPower >= -60) {
+                pixelColor = QColor(255, 200, 0, 255);
+            } else if (sigPower >= -65) {
+                pixelColor = QColor(255, 255, 0, 255);
+            } else if (sigPower >= -70) {
+                pixelColor = QColor(200, 255, 0, 255);
+            } else if (sigPower >= -75) {
+                pixelColor = QColor(150, 255, 0, 255);
+            } else if (sigPower >= -80) {
+                pixelColor = QColor(100, 255, 0, 255);
+            } else if (sigPower >= -85) {
+                pixelColor = QColor(50, 255, 0, 255);
+            } else if (sigPower >= -90) {
+                pixelColor = QColor(0, 255, 0, 255);
+            } else if (sigPower >= -95) {
+                pixelColor = QColor(0, 255, 50, 255);
+            } else if (sigPower >= -100) {
+                pixelColor = QColor(0, 255, 100, 255);
+            } else if (sigPower >= -105) {
+                pixelColor = QColor(0, 255, 150, 255);
+            } else if (sigPower >= -110) {
+                pixelColor = QColor(0, 255, 200, 255);
+            }
+
+            painter.setPen(QPen(pixelColor)); // Используйте QPen
+            painter.drawPoint(i, j);
+        }
+    }
+}*/
+
+void MainWindow::drawSignalMap(QPainter &painter) {
+    float glassAttenuation = 2.0 + 0.2 * freq;
+    float irrGlassAttenuation = 23.0 + 0.3 * freq;
+    float concreteAttenuation = 5.0 + 4.0 * freq;
+    float woodGypsumAttenuation = 4.85 + 0.12 * freq;
+
+    for (int i = 0; i < maxX; i++) {
+        for (int j = 0; j < maxY; j++) {
+            // Вычисление сигнальной мощности для точки (i, j)
+            float distance = sqrt(pow(abs(378 - i), 2) + pow(abs(401 - j), 2)) * onePixDistance;
+            // Применение коэффициента заглушения стены (если есть стена)
+            float wallAttenuation = 0.0;  // Значение по умолчанию (отсутствие стены)
+
+            // Пример: Стеклопакет
+            if (isGlassWall(i, j)) {
+                wallAttenuation = glassAttenuation;
+            }
+
+            // Пример: IRR стекло
+            else if (isIrrGlassWall(i, j)) {
+                wallAttenuation = irrGlassAttenuation;
+            }
+
+            // Пример: Бетон
+            else if (isConcreteWall(i, j)) {
+                wallAttenuation = concreteAttenuation;
+            }
+
+            // Пример: Дерево\гипсокартон
+            else if (isWoodOrGypsumWall(i, j)) {
+                wallAttenuation = woodGypsumAttenuation;
+            }
+            float sigPower = txPower + antGain - pathLoss(distance)-wallAttenuation;
+
+            /*// Применение коэффициента заглушения стены (если есть стена)
+            float wallAttenuation = 0.0;  // Значение по умолчанию (отсутствие стены)
+
+            // Пример: Стеклопакет
+            if (isGlassWall(i, j)) {
+                wallAttenuation = glassAttenuation;
+            }
+
+            // Пример: IRR стекло
+            else if (isIrrGlassWall(i, j)) {
+                wallAttenuation = irrGlassAttenuation;
+            }
+
+            // Пример: Бетон
+            else if (isConcreteWall(i, j)) {
+                wallAttenuation = concreteAttenuation;
+            }
+
+            // Пример: Дерево\гипсокартон
+            else if (isWoodOrGypsumWall(i, j)) {
+                wallAttenuation = woodGypsumAttenuation;
+            }
+
+            // Вычитание коэффициента заглушения от сигнальной мощности
+            sigPower -= wallAttenuation;*/
+
+            // Устанавливаем цвет пикселя в зависимости от сигнальной мощности
+            QColor pixelColor;
+
+            if (sigPower >= -40) {
+                pixelColor = QColor(255, 0, 0, 255);
+            } else if (sigPower >= -45) {
+                pixelColor = QColor(255, 100, 0, 255);
+            } else if (sigPower >= -50) {
+                pixelColor = QColor(255, 100, 0, 255);
+            } else if (sigPower >= -55) {
+                pixelColor = QColor(255, 150, 0, 255);
+            } else if (sigPower >= -60) {
+                pixelColor = QColor(255, 200, 0, 255);
+            } else if (sigPower >= -65) {
+                pixelColor = QColor(255, 255, 0, 255);
+            } else if (sigPower >= -70) {
+                pixelColor = QColor(200, 255, 0, 255);
+            } else if (sigPower >= -75) {
+                pixelColor = QColor(150, 255, 0, 255);
+            } else if (sigPower >= -80) {
+                pixelColor = QColor(100, 255, 0, 255);
+            } else if (sigPower >= -85) {
+                pixelColor = QColor(50, 255, 0, 255);
+            } else if (sigPower >= -90) {
+                pixelColor = QColor(0, 255, 0, 255);
+            } else if (sigPower >= -95) {
+                pixelColor = QColor(0, 255, 50, 255);
+            } else if (sigPower >= -100) {
+                pixelColor = QColor(0, 255, 100, 255);
+            } else if (sigPower >= -105) {
+                pixelColor = QColor(0, 255, 150, 255);
+            } else if (sigPower >= -110) {
+                pixelColor = QColor(0, 255, 200, 255);
+            }
+
+            painter.setPen(QPen(pixelColor)); // Используйте QPen
+            painter.drawPoint(i, j);
+        }
+    }
+}
+
+// Функции для определения типа стены
+bool MainWindow::isGlassWall(int x, int y) {
+    // Задайте координаты и размер области для стеклопакета
+    // Например, стеклопакет находится в области от (x1, y1) до (x2, y2)
+    int x1 = 126;
+    int y1 = 1;
+    int x2 = 126;
+    int y2 = 50;
+
+    return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
+}
+
+bool MainWindow::isIrrGlassWall(int x, int y) {
+    // Задайте координаты и размер области для IRR стекла
+    // Например, IRR стекло находится в области от (x1, y1) до (x2, y2)
+    int x1 = 126;
+    int y1 = 100;
+    int x2 = 126;
+    int y2 = 200;
+
+    return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
+}
+
+bool MainWindow::isConcreteWall(int x, int y) {
+    // Задайте координаты и размер области для бетона
+    // Например, бетон находится в области от (x1, y1) до (x2, y2)
+    int x1 = 126;
+    int y1 = 300;
+    int x2 = 126;
+    int y2 = 400;
+
+    return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
+}
+
+bool MainWindow::isWoodOrGypsumWall(int x, int y) {
+    // Задайте координаты и размер области для дерева или гипсокартона
+    // Например, дерево или гипсокартон находятся в области от (x1, y1) до (x2, y2)
+    int x1 = 126;
+    int y1 = 500;
+    int x2 = 126;
+    int y2 = 600;
+
+    return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
+}
+
+float MainWindow::calculateSignalPower(int x, int y) {
+    float distance = sqrt(pow(abs(378 - x), 2) + pow(abs(401 - y), 2)) * onePixDistance;
+    return txPower + antGain - pathLoss(distance);
+}
+
+float MainWindow::pathLoss(float distance) {
+    return 28 + 22 * log10(freq) + 20 * log10(distance);
+}
+
+MainWindow::~MainWindow() {}
+

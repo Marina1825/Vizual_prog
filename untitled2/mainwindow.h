@@ -2,25 +2,33 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QPainter>
+#include <QGraphicsScene>
+#include <QPixmap>
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget* parent = nullptr);
+    MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    float PL(float f, float d);
-    float calculatePenetrationLoss(float distance);
-    int countObstaclesOnRay(int x1, int y1, int x2, int y2);
-    void drawObstacles(QPainter& p, int maxX, int maxY);
-    void colorizePixels(QPainter& p, int maxX, int maxY, float signalPower);
+    bool isGlassWall(int x, int y);
+    bool isIrrGlassWall(int x, int y);
+    bool isConcreteWall(int x, int y);
+    bool isWoodOrGypsumWall(int x, int y);
 
 private:
-    // S
+    void drawSignalMap(QPainter &painter);
+    float calculateSignalPower(int x, int y);
+    float pathLoss(float distance);
+
+    QGraphicsScene *scene;
+    int maxX;
+    int maxY;
+    double onePixDistance;
+    int txPower;
+    int antGain;
+    float freq;
 };
 
 #endif // MAINWINDOW_H
-
