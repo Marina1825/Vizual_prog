@@ -95,12 +95,72 @@ MainWindow::MainWindow(QWidget *parent)
     }
 }*/
 
+int** prepztstvie(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]) {
+    const int deltaX = abs(x2 - x1);
+    const int deltaY = abs(y2 - y1);
+    const int signX = x1 < x2 ? 1 : -1;
+    const int signY = y1 < y2 ? 1 : -1;
+    int error = deltaX - deltaY;
+    int Prep[2][1000];
+    int i = 0;
+    while(x1 != x2 || y1 != y2){
+        Prep[0][i] = x1;
+        Prep[1][i] = y1;
+        i += 1;
+        int error2 = error * 2;
+        if(error2 > -deltaY)
+        {
+            error -= deltaY;
+            x1 += signX;
+        }
+        if(error2 < deltaX)
+        {
+            error += deltaX;
+            y1 += signY;
+        }
+    }
+    Prep[0][i] = x2;
+    Prep[1][i] = y2;
+    return Prep;
+}
+
+void drawLine(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]) {
+    const int deltaX = abs(x2 - x1);
+    const int deltaY = abs(y2 - y1);
+    const int signX = x1 < x2 ? 1 : -1;
+    const int signY = y1 < y2 ? 1 : -1;
+    int error = deltaX - deltaY;
+
+
+    while(x1 != x2 || y1 != y2)
+    {
+        for (int i = 0; i < maxX; i++) {
+            for (int j = 0; j < maxY; j++) {
+                //setPixel(x1, y1);
+                int error2 = error * 2;
+                if(error2 > -deltaY)
+                {
+                    error -= deltaY;
+                    x1 += signX;
+                }
+                if(error2 < deltaX)
+                {
+                    error += deltaX;
+                    y1 += signY;
+                }
+            }
+        }
+    }
+
+}
+
 void MainWindow::drawSignalMap(QPainter &painter) {
     float glassAttenuation = 2.0 + 0.2 * freq;
     float irrGlassAttenuation = 23.0 + 0.3 * freq;
     float concreteAttenuation = 5.0 + 4.0 * freq;
     float woodGypsumAttenuation = 4.85 + 0.12 * freq;
-
+    int matrix[4][4];
+    int (&matrixR)[4][4] = matrix;
     for (int i = 0; i < maxX; i++) {
         for (int j = 0; j < maxY; j++) {
             // Вычисление сигнальной мощности для точки (i, j)
@@ -108,23 +168,24 @@ void MainWindow::drawSignalMap(QPainter &painter) {
             // Применение коэффициента заглушения стены (если есть стена)
             float wallAttenuation = 0.0;  // Значение по умолчанию (отсутствие стены)
 
+
             // Пример: Стеклопакет
-            if (isGlassWall(i, j)) {
+            if (isGlassWall(i, j, matrix)) {
                 wallAttenuation = glassAttenuation;
             }
 
             // Пример: IRR стекло
-            else if (isIrrGlassWall(i, j)) {
+            else if (isIrrGlassWall(i, j, matrix)) {
                 wallAttenuation = irrGlassAttenuation;
             }
 
             // Пример: Бетон
-            else if (isConcreteWall(i, j)) {
+            else if (isConcreteWall(i, j, matrix)) {
                 wallAttenuation = concreteAttenuation;
             }
 
             // Пример: Дерево\гипсокартон
-            else if (isWoodOrGypsumWall(i, j)) {
+            else if (isWoodOrGypsumWall(i, j, matrix)) {
                 wallAttenuation = woodGypsumAttenuation;
             }
             float sigPower = txPower + antGain - pathLoss(distance)-wallAttenuation;
@@ -197,58 +258,82 @@ void MainWindow::drawSignalMap(QPainter &painter) {
 }
 
 // Функции для определения типа стены
-bool MainWindow::isGlassWall(int x, int y) {
+bool MainWindow::isGlassWall(int x, int y,int (&matrixR)[4][4]) {
     // Задайте координаты и размер области для стеклопакета
     // Например, стеклопакет находится в области от (x1, y1) до (x2, y2)
     int x1 = 126;
     int y1 = 1;
     int x2 = 126;
     int y2 = 50;
-
+    for (int i = 0; i < 1; i++) {
+        matrixR[0][1] = x1;
+        matrixR[0][2] = y1;
+        matrixR[0][3] = x2;
+        matrixR[0][4] = y2;
+    }
     return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
 }
 
-bool MainWindow::isIrrGlassWall(int x, int y) {
+bool MainWindow::isIrrGlassWall(int x, int y,int (&matrixR)[4][4]) {
     // Задайте координаты и размер области для IRR стекла
     // Например, IRR стекло находится в области от (x1, y1) до (x2, y2)
     int x1 = 126;
     int y1 = 100;
     int x2 = 126;
-    int y2 = 200;
+    int y2 = 250;
+    for (int i = 1; i < 2; i++) {
+        matrixR[1][1] = x1;
+        matrixR[1][2] = y1;
+        matrixR[1][3] = x2;
+        matrixR[1][4] = y2;
+    }
 
     return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
 }
 
-bool MainWindow::isConcreteWall(int x, int y) {
+bool MainWindow::isConcreteWall(int x, int y,int (&matrixR)[4][4]) {
     // Задайте координаты и размер области для бетона
     // Например, бетон находится в области от (x1, y1) до (x2, y2)
     int x1 = 126;
     int y1 = 300;
     int x2 = 126;
     int y2 = 400;
+    for (int i = 2; i < 3; i++) {
+        matrixR[2][1] = x1;
+        matrixR[2][2] = y1;
+        matrixR[2][3] = x2;
+        matrixR[2][4] = y2;
+    }
 
     return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
 }
 
-bool MainWindow::isWoodOrGypsumWall(int x, int y) {
+bool MainWindow::isWoodOrGypsumWall(int x, int y,int (&matrixR)[4][4]) {
     // Задайте координаты и размер области для дерева или гипсокартона
     // Например, дерево или гипсокартон находятся в области от (x1, y1) до (x2, y2)
     int x1 = 126;
     int y1 = 500;
     int x2 = 126;
     int y2 = 600;
+    for (int i = 3; i < 4; i++) {
+        matrixR[3][1] = x1;
+        matrixR[3][2] = y1;
+        matrixR[3][3] = x2;
+        matrixR[3][4] = y2;
+    }
+
 
     return (x >= x1 && x <= x2 && y >= y1 && y <= y2);
 }
 
-float MainWindow::calculateSignalPower(int x, int y) {
+/*float MainWindow::calculateSignalPower(int x, int y) {
     float distance = sqrt(pow(abs(378 - x), 2) + pow(abs(401 - y), 2)) * onePixDistance;
     return txPower + antGain - pathLoss(distance);
 }
 
 float MainWindow::pathLoss(float distance) {
     return 28 + 22 * log10(freq) + 20 * log10(distance);
-}
+}*/
 
 MainWindow::~MainWindow() {}
 

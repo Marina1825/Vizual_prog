@@ -12,10 +12,12 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    bool isGlassWall(int x, int y);
-    bool isIrrGlassWall(int x, int y);
-    bool isConcreteWall(int x, int y);
-    bool isWoodOrGypsumWall(int x, int y);
+    bool isGlassWall(int x, int y, int (&matrixR)[4][4]);
+    bool isIrrGlassWall(int x, int y, int (&matrixR)[4][4]);
+    bool isConcreteWall(int x, int y, int (&matrixR)[4][4]);
+    bool isWoodOrGypsumWall(int x, int y, int (&matrixR)[4][4]);
+    void drawLine(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]);
+    int** prepztstvie(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]);
 
 private:
     void drawSignalMap(QPainter &painter);
