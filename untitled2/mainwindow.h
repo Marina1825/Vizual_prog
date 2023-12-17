@@ -2,8 +2,11 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QGraphicsScene>
-#include <QPixmap>
+#include <QtWidgets>
+
+#define SIZE_MAP_X 1000
+#define SIZE_MAP_Y 1000
+
 
 enum class type_material : int{
     NO_MATERIAL = 0,
@@ -11,31 +14,28 @@ enum class type_material : int{
     IRR_GLASS,
     CONCRETE,
     WOOD,
+    DRYWALL,
+    COUNT_MATERIAL
 };
 
-class MainWindow : public QMainWindow {
+
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    int **map_obj;
+
 
     void drawSignalStrength(QPixmap *map);
     void setupMap();
     void createColorMap();
-
 private:
-    void drawSignalMap(QPainter &painter);
-    float calculateSignalPower(int x, int y);
-    float pathLoss(float distance);
+    QLabel *label_;
+    QGroupBox *gradientGroupBox_;
 
-    QGraphicsScene *scene;
-    int maxX;
-    int maxY;
-    double onePixDistance;
-    int txPower;
-    int antGain;
-    float freq;
 };
 
 #endif // MAINWINDOW_H

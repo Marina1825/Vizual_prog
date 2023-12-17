@@ -1,199 +1,97 @@
 #include "mainwindow.h"
+#include "Material.h"
+#include "Colors.h"
+#include "Brezenham.h"
+#include "Formuls.h"
 #include <QtWidgets>
+#include <QGroupBox>
+#include <QWidget>
 #include <cmath>
 
-
-    void setupMap();
-void MainWindow::setupMap() {
-    add_material_to_map(map_obj, 500, 350, 20, 30, (int)type_material::GLASS);
-    add_material_to_map(map_obj, 500, 700, 30, 40, (int)type_material::CONCRETE);
-    add_material_to_map(map_obj, 700, 500, 50, 80, (int)type_material::WOOD);
-}
+#define Pix_to_Meters 10
+#define Tx_Power 23
+#define Antena_Gain -12
+#define frequency 2.5
+#define Bs_PosX 500
+#define Bs_PosY 500
+#define SIGNAL_COLOR_THRESHOLD -44
+#define SIGNAL_COLOR_STEP 10
+#define DRAW_LINE_LENGTH 55
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), maxX(1000), maxY(1000), onePixDistance(10.0), txPower(10), antGain(6), freq(6.0) {
-    scene = new QGraphicsScene();
-    QPixmap map(maxX, maxY);
-    QPainter painter(&map);
+    : QMainWindow(parent),
+      map_obj(new int*[SIZE_MAP_Y])
+{
+    this->setFixedSize(1200, 1000);
 
-    drawSignalMap(painter);
+    QGraphicsScene* scene = new QGraphicsScene();
+    QPixmap map(SIZE_MAP_X, SIZE_MAP_Y);
 
-    painter.end();
+    for(int i = 0; i < SIZE_MAP_Y; ++i){
+        map_obj[i] = new int[SIZE_MAP_X]{};
+    }
+
+    setupMap();
+    drawSignalStrength(&map);
+
     scene->addPixmap(map);
-    QGraphicsView *view = new QGraphicsView(scene);
+    QGraphicsView* view = new QGraphicsView(scene);
     setCentralWidget(view);
+    view->setGeometry(300, 0, SIZE_MAP_X, SIZE_MAP_Y);
+    this->layout()->addWidget(view);
+    gradientGroupBox_ = new QGroupBox(QStringLiteral("Signal Strength"));
+    gradientGroupBox_->setGeometry(50, 100, 200, 700);
+    this->layout()->addWidget(gradientGroupBox_);
+    createColorMap();
 }
 
-int** prepztstvie(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]) {
-    const int deltaX = abs(x2 - x1);
-    const int deltaY = abs(y2 - y1);
-    const int signX = x1 < x2 ? 1 : -1;
-    const int signY = y1 < y2 ? 1 : -1;
-    int error = deltaX - deltaY;
-    int Prep[2][1000];
-    int i = 0;
-    while(x1 != x2 || y1 != y2){
-        Prep[0][i] = x1;
-        Prep[1][i] = y1;
-        i += 1;
-        int error2 = error * 2;
-        if(error2 > -deltaY)
-        {
-            error -= deltaY;
-            x1 += signX;
-        }
-        if(error2 < deltaX)
-        {
-            error += deltaX;
-            y1 += signY;
+void MainWindow::drawSignalStrength(QPixmap* map) {
+    QPainter p(map);
+    for (int i = 0; i < SIZE_MAP_Y; i++) {
+        for (int j = 0; j < SIZE_MAP_X; j++) {
+            float distance = calculate(Bs_PosX, i, Bs_PosY, j);
+            distance = pix_translate(distance, Pix_to_Meters);
+            float Signal_Power = Tx_Power + Antena_Gain - formula(frequency, distance);
+            int df = drawBresenhamLine(&p, map_obj, Bs_PosX, Bs_PosY, i, j);
+            Signal_Power -= df;
+            QColor signalColor(getSignalColor(Signal_Power));
+            QPen pen(signalColor);
+            p.setPen(pen);
+            p.drawPoint(i, j);
         }
     }
-    Prep[0][i] = x2;
-    Prep[1][i] = y2;
-    return Prep;
+    p.end();
 }
 
-void drawLine(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]) {
-    const int deltaX = abs(x2 - x1);
-    const int deltaY = abs(y2 - y1);
-    const int signX = x1 < x2 ? 1 : -1;
-    const int signY = y1 < y2 ? 1 : -1;
-    int error = deltaX - deltaY;
-
-
-    while(x1 != x2 || y1 != y2)
-    {
-        for (int i = 0; i < maxX; i++) {
-            for (int j = 0; j < maxY; j++) {
-                //setPixel(x1, y1);
-                int error2 = error * 2;
-                if(error2 > -deltaY)
-                {
-                    error -= deltaY;
-                    x1 += signX;
-                }
-                if(error2 < deltaX)
-                {
-                    error += deltaX;
-                    y1 += signY;
-                }
-            }
+QString MainWindow::getSignalColor(float signalPower) {
+    if (signalPower < SIGNAL_COLOR_THRESHOLD) {
+        int index = static_cast<int>((SIGNAL_COLOR_THRESHOLD - signalPower) / SIGNAL_COLOR_STEP);
+        switch (index) {
+            case 0: return "red";
+            case 1: return "orangered";
+            case 2: return "orange";
+            case 3: return "yellow";
+            case 4: return "greenyellow";
+            case 5: return "lime";
+            case 6: return "mediumseagreen";
+            case 7: return "mediumaquamarine";
+            case 8: return "royalblue";
+            case 9: return "blue";
         }
     }
-
+    return "white";
 }
-
-void MainWindow::drawSignalStrength(QPixmap *map); {
-    float glassAttenuation = 2.0 + 0.2 * freq;
-    float irrGlassAttenuation = 23.0 + 0.3 * freq;
-    float concreteAttenuation = 5.0 + 4.0 * freq;
-    float woodGypsumAttenuation = 4.85 + 0.12 * freq;
-    int matrix[4][4];
-    int (&matrixR)[4][4] = matrix;
-    for (int i = 0; i < maxX; i++) {
-        for (int j = 0; j < maxY; j++) {
-            // Вычисление сигнальной мощности для точки (i, j)
-            float distance = sqrt(pow(abs(378 - i), 2) + pow(abs(401 - j), 2)) * onePixDistance;
-            // Применение коэффициента заглушения стены (если есть стена)
-            float wallAttenuation = 0.0;  // Значение по умолчанию (отсутствие стены)
-
-
-            // Пример: Стеклопакет
-            if (isGlassWall(i, j, matrix)) {
-                wallAttenuation = glassAttenuation;
-            }
-
-            // Пример: IRR стекло
-            else if (isIrrGlassWall(i, j, matrix)) {
-                wallAttenuation = irrGlassAttenuation;
-            }
-
-            // Пример: Бетон
-            else if (isConcreteWall(i, j, matrix)) {
-                wallAttenuation = concreteAttenuation;
-            }
-
-            // Пример: Дерево\гипсокартон
-            else if (isWoodOrGypsumWall(i, j, matrix)) {
-                wallAttenuation = woodGypsumAttenuation;
-            }
-            float sigPower = txPower + antGain - pathLoss(distance)-wallAttenuation;
-
-            /*// Применение коэффициента заглушения стены (если есть стена)
-            float wallAttenuation = 0.0;  // Значение по умолчанию (отсутствие стены)
-
-            // Пример: Стеклопакет
-            if (isGlassWall(i, j)) {
-                wallAttenuation = glassAttenuation;
-            }
-
-            // Пример: IRR стекло
-            else if (isIrrGlassWall(i, j)) {
-                wallAttenuation = irrGlassAttenuation;
-            }
-
-            // Пример: Бетон
-            else if (isConcreteWall(i, j)) {
-                wallAttenuation = concreteAttenuation;
-            }
-
-            // Пример: Дерево\гипсокартон
-            else if (isWoodOrGypsumWall(i, j)) {
-                wallAttenuation = woodGypsumAttenuation;
-            }
-
-            // Вычитание коэффициента заглушения от сигнальной мощности
-            sigPower -= wallAttenuation;*/
-
-            // Устанавливаем цвет пикселя в зависимости от сигнальной мощности
-            QColor pixelColor;
-
-            if (sigPower >= -40) {
-                pixelColor = QColor(255, 0, 0, 255);
-            } else if (sigPower >= -45) {
-                pixelColor = QColor(255, 100, 0, 255);
-            } else if (sigPower >= -50) {
-                pixelColor = QColor(255, 100, 0, 255);
-            } else if (sigPower >= -55) {
-                pixelColor = QColor(255, 150, 0, 255);
-            } else if (sigPower >= -60) {
-                pixelColor = QColor(255, 200, 0, 255);
-            } else if (sigPower >= -65) {
-                pixelColor = QColor(255, 255, 0, 255);
-            } else if (sigPower >= -70) {
-                pixelColor = QColor(200, 255, 0, 255);
-            } else if (sigPower >= -75) {
-                pixelColor = QColor(150, 255, 0, 255);
-            } else if (sigPower >= -80) {
-                pixelColor = QColor(100, 255, 0, 255);
-            } else if (sigPower >= -85) {
-                pixelColor = QColor(50, 255, 0, 255);
-            } else if (sigPower >= -90) {
-                pixelColor = QColor(0, 255, 0, 255);
-            } else if (sigPower >= -95) {
-                pixelColor = QColor(0, 255, 50, 255);
-            } else if (sigPower >= -100) {
-                pixelColor = QColor(0, 255, 100, 255);
-            } else if (sigPower >= -105) {
-                pixelColor = QColor(0, 255, 150, 255);
-            } else if (sigPower >= -110) {
-                pixelColor = QColor(0, 255, 200, 255);
-            }
-
-            painter.setPen(QPen(pixelColor)); // Используйте QPen
-            painter.drawPoint(i, j);
-        }
-    }
-}
-
-// Функции для определения типа стены
 
 void MainWindow::createColorMap() {
     int height = 400;
     int width = 150;
     int border = 10;
     QLinearGradient gr(0, 0, 1, height - 2 * border);
-    //позже описать цаета
+    gr.setColorAt(1.0f, Qt::blue);
+    gr.setColorAt(0.8f, Qt::cyan);
+    gr.setColorAt(0.6f, Qt::green);
+    gr.setColorAt(0.4f, Qt::yellow);
+    gr.setColorAt(0.0f, Qt::red);
 
     QPixmap pm(width, height);
     pm.fill(Qt::transparent);
@@ -217,7 +115,10 @@ void MainWindow::createColorMap() {
     gradientGroupBox_->setLayout(colorMapVBox);
 }
 
-
 MainWindow::~MainWindow() {
-
+    for(int i = 0; i < SIZE_MAP_Y; ++i){
+        delete[] map_obj[i];
+    }
+    delete[] map_obj;
 }
+
