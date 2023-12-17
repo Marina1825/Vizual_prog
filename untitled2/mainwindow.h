@@ -5,6 +5,14 @@
 #include <QGraphicsScene>
 #include <QPixmap>
 
+enum class type_material : int{
+    NO_MATERIAL = 0,
+    GLASS,
+    IRR_GLASS,
+    CONCRETE,
+    WOOD,
+};
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -12,12 +20,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    bool isGlassWall(int x, int y, int (&matrixR)[4][4]);
-    bool isIrrGlassWall(int x, int y, int (&matrixR)[4][4]);
-    bool isConcreteWall(int x, int y, int (&matrixR)[4][4]);
-    bool isWoodOrGypsumWall(int x, int y, int (&matrixR)[4][4]);
-    void drawLine(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]);
-    int** prepztstvie(int x1, int y1, int x2, int y2, int (&matrixR)[4][4]);
+    void drawSignalStrength(QPixmap *map);
+    void setupMap();
+    void createColorMap();
 
 private:
     void drawSignalMap(QPainter &painter);
