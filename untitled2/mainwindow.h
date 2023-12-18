@@ -28,7 +28,7 @@ public:
     ~MainWindow();
     int **map_obj;
 
-
+    QString getSignalQColor(float signalPower);
     void drawSignalStrength(QPixmap *map);
     void setupMap();
     void createColorMap();

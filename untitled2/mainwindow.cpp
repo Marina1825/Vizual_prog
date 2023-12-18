@@ -2,7 +2,7 @@
 #include "Material.h"
 #include "Colors.h"
 #include "Brezenham.h"
-#include "Formuls.h"
+#include "formuls.h"
 #include <QtWidgets>
 #include <QGroupBox>
 #include <QWidget>
@@ -45,6 +45,12 @@ MainWindow::MainWindow(QWidget *parent)
     createColorMap();
 }
 
+void MainWindow::setupMap() {
+    add_material_to_map(map_obj, 500, 350, 20, 30, (int)type_material::GLASS);
+    add_material_to_map(map_obj, 500, 700, 30, 40, (int)type_material::CONCRETE);
+    add_material_to_map(map_obj, 700, 500, 50, 80, (int)type_material::WOOD);
+}
+
 void MainWindow::drawSignalStrength(QPixmap* map) {
     QPainter p(map);
     for (int i = 0; i < SIZE_MAP_Y; i++) {
@@ -54,8 +60,8 @@ void MainWindow::drawSignalStrength(QPixmap* map) {
             float Signal_Power = Tx_Power + Antena_Gain - formula(frequency, distance);
             int df = drawBresenhamLine(&p, map_obj, Bs_PosX, Bs_PosY, i, j);
             Signal_Power -= df;
-            QColor signalColor(getSignalColor(Signal_Power));
-            QPen pen(signalColor);
+            QColor signalQColor(getSignalQColor(Signal_Power));
+            QPen pen(signalQColor);
             p.setPen(pen);
             p.drawPoint(i, j);
         }
@@ -63,7 +69,7 @@ void MainWindow::drawSignalStrength(QPixmap* map) {
     p.end();
 }
 
-QString MainWindow::getSignalColor(float signalPower) {
+QString MainWindow::getSignalQColor(float signalPower) {
     if (signalPower < SIGNAL_COLOR_THRESHOLD) {
         int index = static_cast<int>((SIGNAL_COLOR_THRESHOLD - signalPower) / SIGNAL_COLOR_STEP);
         switch (index) {

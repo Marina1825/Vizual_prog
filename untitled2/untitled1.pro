@@ -19,8 +19,8 @@ SOURCES += \
 HEADERS += \
     Brezenham.h \
     Colors.h \
-    Formuls.h \
     Material.h \
+    formuls.h \
     mainwindow.h
 
 FORMS += \
